@@ -1,1 +1,34 @@
-<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>Side-by-side PDF Reader</title>\n    <style>\n        body {\n            display: flex;\n        }\n        #pdf-container {\n            width: 50%;\n            height: 100vh;\n            overflow: auto;\n        }\n        #text-container {\n            width: 50%;\n            padding: 20px;\n            overflow: auto;\n        }\n    </style>\n</head>\n<body>\n\n<div id="pdf-container">\n    <iframe src="path_to_pdf.pdf" width="100%" height="100%"></iframe>\n</div>\n\n<div id="text-container">\n    <!-- French text with English translation goes here -->\n    <h1>French Text Title</h1>\n    <p>French text here... <br> <em>(English Translation)</em></p>\n</div>\n\n<script>\n    // Translation API integration can be added here\n</script>\n\n</body>\n</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projective Book Reader</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Projective Book Reader</h1>
+        <input type="file" id="pdf-upload" accept="application/pdf"/>
+        <div id="progress-indicators"></div>
+        
+        <div class="split-screen">
+            <div class="french-text">
+                <h2>French Text</h2>
+                <p id="french-content">Please upload a PDF file.</p>
+            </div>
+            <div class="english-text">
+                <h2>English Translation</h2>
+                <p id="english-content">Translation will appear here.</p>
+            </div>
+        </div>
+        
+        <div class="navigation">
+            <button id="prev-button">Previous</button>
+            <button id="next-button">Next</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
