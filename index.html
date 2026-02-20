@@ -1,0 +1,999 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Projective — Complete Book Reader</title>
+  <style>
+    * { box-sizing: border-box; }
+    :root {
+      --bg: #f7f7f8;
+      --card: #fff;
+      --muted: #666;
+      --accent: #0b63d6;
+      --error: #d9534f;
+      --success: #5cb85c;
+      --border: #e6e6e6;
+    }
+    
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: Georgia, "Times New Roman", serif;
+      background: var(--bg);
+      color: #111;
+    }
+    
+    header {
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      z-index: 100;
+      position: relative;
+    }
+    
+    header h1 {
+      font-size: 18px;
+      margin: 0;
+      font-weight: 600;
+      flex: 0 1 auto;
+    }
+    
+    .controls {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    
+    .controls-group {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    
+    button {
+      background: var(--accent);
+      color: #fff;
+      border: 0;
+      padding: 8px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+    
+    button:hover:not([disabled]) {
+      background: #0a52b8;
+      box-shadow: 0 2px 6px rgba(11, 99, 214, 0.3);
+    }
+    
+    button:active:not([disabled]) {
+      transform: scale(0.98);
+    }
+    
+    button[disabled] {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    
+    button.secondary {
+      background: #6c757d;
+    }
+    
+    button.secondary:hover:not([disabled]) {
+      background: #5a6268;
+    }
+    
+    .page-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #f9f9f9;
+      padding: 6px 10px;
+      border-radius: 4px;
+    }
+    
+    .page-info {
+      font-size: 13px;
+      color: var(--muted);
+      white-space: nowrap;
+      font-weight: 500;
+    }
+    
+    input[type="number"] {
+      width: 45px;
+      padding: 6px 8px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    
+    input[type="file"] {
+      font-size: 12px;
+      padding: 4px;
+    }
+    
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+    }
+    
+    .checkbox-group input[type="checkbox"] {
+      cursor: pointer;
+    }
+    
+    .sidebar-toggle {
+      background: #6c757d;
+      padding: 6px 10px;
+      font-size: 12px;
+    }
+    
+    .main-wrapper {
+      display: flex;
+      height: calc(100vh - 70px);
+      gap: 0;
+      overflow: hidden;
+    }
+    
+    .sidebar {
+      width: 280px;
+      background: #fff;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 1px 0 3px rgba(0,0,0,0.05);
+    }
+    
+    .sidebar.hidden {
+      display: none;
+    }
+    
+    .sidebar-header {
+      padding: 14px;
+      border-bottom: 1px solid var(--border);
+      background: #f9f9f9;
+      font-weight: 600;
+      font-size: 14px;
+      color: #333;
+    }
+    
+    .sidebar-section {
+      padding: 14px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+    
+    .sidebar-section label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    
+    .sidebar-section input[type="file"] {
+      width: 100%;
+      margin-bottom: 8px;
+      padding: 6px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+    }
+    
+    .sidebar-section button {
+      width: 100%;
+      margin-bottom: 6px;
+      padding: 8px;
+    }
+    
+    .sidebar-section button:last-child {
+      margin-bottom: 0;
+    }
+    
+    .toc-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+      font-size: 12px;
+    }
+    
+    .toc-item {
+      padding: 8px 10px;
+      margin-bottom: 2px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+      border-left: 3px solid transparent;
+    }
+    
+    .toc-item:hover {
+      background: #f0f0f0;
+      border-left-color: var(--accent);
+    }
+    
+    .toc-item.active {
+      background: var(--accent);
+      color: white;
+      border-left-color: #0a52b8;
+      font-weight: 600;
+    }
+    
+    .container {
+      flex: 1;
+      display: flex;
+      gap: 16px;
+      padding: 16px;
+      overflow: hidden;
+    }
+    
+    .page-column {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-width: 0;
+    }
+    
+    .page {
+      flex: 1;
+      background: var(--card);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    
+    .page-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    
+    .page h2 {
+      margin: 0 0 8px 0;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    
+    .meta {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    
+    .page-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      font-size: 15px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      word-break: break-word;
+    }
+    
+    .footer {
+      padding: 12px 18px;
+      background: #fff;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--muted);
+      text-align: center;
+    }
+    
+    .status-container {
+      position: fixed;
+      top: 70px;
+      left: 0;
+      right: 0;
+      z-index: 200;
+      pointer-events: none;
+    }
+    
+    .status-message {
+      padding: 12px 18px;
+      margin: 8px;
+      border-radius: 4px;
+      font-size: 13px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      pointer-events: all;
+      animation: slideDown 0.3s ease;
+    }
+    
+    @keyframes slideDown {
+      from {
+        transform: translateY(-20px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+    
+    .status-message.success {
+      background: #d4edda;
+      color: #155724;
+      border-left: 4px solid #28a745;
+    }
+    
+    .status-message.error {
+      background: #f8d7da;
+      color: #721c24;
+      border-left: 4px solid #dc3545;
+    }
+    
+    .status-message.info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border-left: 4px solid #17a2b8;
+    }
+    
+    .status-message.warning {
+      background: #fff3cd;
+      color: #856404;
+      border-left: 4px solid #ffc107;
+    }
+    
+    .loading-spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid #f3f3f3;
+      border-top: 2px solid var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .progress-bar {
+      width: 100%;
+      height: 3px;
+      background: #e6e6e6;
+      border-radius: 2px;
+      margin: 8px 0;
+      overflow: hidden;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), #00b8e6);
+      width: 0%;
+      transition: width 0.3s;
+    }
+    
+    .stat-badge {
+      display: inline-block;
+      background: var(--accent);
+      color: white;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      margin: 0 4px;
+    }
+    
+    @media (max-width: 1200px) {
+      .container {
+        flex-direction: column;
+        gap: 12px;
+      }
+      
+      .page-column {
+        min-height: 45vh;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      header {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 10px;
+      }
+      
+      header h1 {
+        font-size: 16px;
+      }
+      
+      .controls {
+        flex-direction: column;
+      }
+      
+      .controls-group {
+        width: 100%;
+      }
+      
+      .controls-group button {
+        flex: 1;
+      }
+      
+      .sidebar {
+        display: none;
+      }
+      
+      .sidebar.hidden {
+        display: flex;
+      }
+      
+      .sidebar.hidden {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1000;
+        border-right: none;
+        box-shadow: -2px 0 8px rgba(0,0,0,0.2);
+      }
+      
+      .main-wrapper {
+        flex-direction: column;
+        height: auto;
+      }
+      
+      .container {
+        padding: 8px;
+      }
+    }
+  </style>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+
+<body>
+
+<header>
+  <h1>📖 Projective — Book Reader</h1>
+  <div class="controls">
+    <div class="controls-group">
+      <button id="sidebarToggle" class="secondary sidebar-toggle">☰ Menu</button>
+      <button id="prevBtn">← Previous</button>
+      <div class="page-nav">
+        <div class="page-info">Page <strong id="pageNum">—</strong> / <strong id="totalPages">0</strong></div>
+        <input type="number" id="pageJump" min="5" value="5" />
+        <button id="jumpBtn" style="padding: 6px 10px;">Jump</button>
+      </div>
+      <button id="nextBtn">Next →</button>
+    </div>
+    <div class="controls-group">
+      <div class="checkbox-group">
+        <input type="checkbox" id="autoTranslate" checked />
+        <label for="autoTranslate" style="margin: 0;">Auto-Translate</label>
+      </div>
+      <button id="settingsBtn" class="secondary" style="padding: 6px 10px;">⚙ Settings</button>
+    </div>
+  </div>
+</header>
+
+<div class="main-wrapper">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">📚 Book Contents</div>
+    
+    <div class="sidebar-section">
+      <label>📤 Upload PDF Files</label>
+      <input type="file" id="pdfUpload" accept=".pdf" multiple />
+      <button id="uploadBtn">Process PDFs</button>
+      <div class="progress-bar">
+        <div class="progress-fill" id="uploadProgress"></div>
+      </div>
+      <div style="font-size: 11px; color: var(--muted); margin-top: 6px;">
+        PDFs loaded: <strong id="pdfCount">0</strong>
+      </div>
+    </div>
+    
+    <div class="sidebar-section">
+      <label>⚡ Actions</label>
+      <button id="exportBtn" class="secondary">💾 Export JSON</button>
+    </div>
+    
+    <div class="sidebar-header" style="margin-top: 12px;">Pages in Book</div>
+    <div class="toc-list" id="tocList">
+      <div style="padding: 12px; text-align: center; color: var(--muted); font-size: 12px;">
+        Upload PDFs to see pages...
+      </div>
+    </div>
+  </aside>
+
+  <div class="container" id="viewer">
+    <div class="page-column">
+      <div class="page">
+        <div class="page-header">
+          <h2 id="leftTitle">French (Original)</h2>
+          <div class="meta" id="leftMeta">Load PDF files to display French text</div>
+        </div>
+        <div class="page-content" id="leftContent">
+          <em style="color: var(--muted);">Upload PDFs using the sidebar to extract text...</em>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-column">
+      <div class="page">
+        <div class="page-header">
+          <h2 id="rightTitle">English (Translation)</h2>
+          <div class="meta" id="rightMeta">English translation will appear here</div>
+        </div>
+        <div class="page-content" id="rightContent">
+          <em style="color: var(--muted);">English translation will appear here...</em>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer" id="footer">
+  <strong>Projective Book Reader v3.0</strong> 
+  <span id="footerStats" style="margin-left: 12px;">Ready to load PDFs</span>
+</div>
+
+<div class="status-container" id="statusContainer"></div>
+
+<script>
+const CONFIG = {
+  minPage: 5,
+  maxPage: 600,
+  pagesPerPdf: 4,
+  pdfJsWorkerUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+};
+
+let appState = {
+  pages: new Map(),
+  currentPage: 5,
+  pdfFiles: [],
+  loading: false,
+  translated: new Set(),
+  translationCache: new Map()
+};
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = CONFIG.pdfJsWorkerUrl;
+
+function showStatus(message, type = 'info', duration = 4000) {
+  const container = document.getElementById('statusContainer');
+  const statusDiv = document.createElement('div');
+  statusDiv.className = `status-message ${type}`;
+  
+  if (type === 'info' || type === 'warning') {
+    statusDiv.innerHTML = `<span class="loading-spinner"></span>${message}`;
+  } else {
+    statusDiv.textContent = message;
+  }
+  
+  container.appendChild(statusDiv);
+  
+  if (duration > 0) {
+    setTimeout(() => {
+      statusDiv.style.animation = 'slideDown 0.3s ease reverse';
+      setTimeout(() => statusDiv.remove(), 300);
+    }, duration);
+  }
+  
+  return statusDiv;
+}
+
+async function extractTextFromPDF(file) {
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const pages = [];
+    
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      const text = textContent.items
+        .map(item => item.str)
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      
+      pages.push({
+        pageNum: i,
+        text: text,
+        pdfFile: file.name
+      });
+    }
+    
+    return pages;
+  } catch (error) {
+    console.error('PDF extraction error:', error);
+    showStatus(`Error processing ${file.name}: ${error.message}`, 'error');
+    return [];
+  }
+}
+
+async function translateText(text, fromLang = 'fr', toLang = 'en') {
+  const cacheKey = `${text.substring(0, 50)}_${fromLang}_${toLang}`;
+  if (appState.translationCache.has(cacheKey)) {
+    return appState.translationCache.get(cacheKey);
+  }
+  
+  try {
+    const response = await fetch('https://libretranslate.de/translate', {
+      method: 'POST',
+      body: JSON.stringify({
+        q: text,
+        source: fromLang,
+        target: toLang
+      }),
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    const translatedText = data.translatedText || text;
+    
+    appState.translationCache.set(cacheKey, translatedText);
+    
+    return translatedText;
+  } catch (error) {
+    console.warn('LibreTranslate failed, trying MyMemory API...', error);
+    
+    try {
+      const fallbackUrl = 
+        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${fromLang}|${toLang}`;
+      
+      const response = await fetch(fallbackUrl);
+      const data = await response.json();
+      
+      if (data.responseStatus === 200) {
+        const translatedText = data.responseData.translatedText;
+        appState.translationCache.set(cacheKey, translatedText);
+        return translatedText;
+      }
+    } catch (fallbackError) {
+      console.error('Both translation APIs failed:', fallbackError);
+    }
+    
+    return text;
+  }
+}
+
+function updatePageNumbers() {
+  if (appState.pages.size === 0) {
+    document.getElementById('totalPages').textContent = '0';
+    return;
+  }
+  
+  const pages = Array.from(appState.pages.keys()).sort((a, b) => a - b);
+  const minPage = pages[0];
+  const maxPage = pages[pages.length - 1];
+  
+  document.getElementById('totalPages').textContent = appState.pages.size;
+  document.getElementById('pageJump').min = minPage;
+  document.getElementById('pageJump').max = maxPage;
+  document.getElementById('pageNum').textContent = appState.currentPage;
+  
+  const stats = `${appState.pages.size} pages | Translated: ${appState.translated.size}`;
+  document.getElementById('footerStats').innerHTML = stats;
+}
+
+function updateTOC() {
+  const tocList = document.getElementById('tocList');
+  
+  if (appState.pages.size === 0) {
+    tocList.innerHTML = '<div style="padding: 12px; text-align: center; color: var(--muted); font-size: 12px;">No pages loaded</div>';
+    return;
+  }
+  
+  tocList.innerHTML = '';
+  const sortedPages = Array.from(appState.pages.keys()).sort((a, b) => a - b);
+  
+  sortedPages.forEach(pageNum => {
+    const item = document.createElement('div');
+    item.className = 'toc-item' + (pageNum === appState.currentPage ? ' active' : '');
+    
+    const isTranslated = appState.translated.has(pageNum);
+    const badge = isTranslated ? ' ✓' : '';
+    
+    item.textContent = `Page ${pageNum}${badge}`;
+    item.addEventListener('click', () => loadPage(pageNum));
+    tocList.appendChild(item);
+  });
+}
+
+function updateButtonStates() {
+  if (appState.pages.size === 0) {
+    document.getElementById('prevBtn').disabled = true;
+    document.getElementById('nextBtn').disabled = true;
+    return;
+  }
+  
+  const pages = Array.from(appState.pages.keys()).sort((a, b) => a - b);
+  const minPage = pages[0];
+  const maxPage = pages[pages.length - 1];
+  
+  document.getElementById('prevBtn').disabled = (appState.currentPage === minPage);
+  document.getElementById('nextBtn').disabled = (appState.currentPage === maxPage);
+}
+
+async function loadPage(pageNum) {
+  if (!appState.pages.has(pageNum)) {
+    showStatus(`Page ${pageNum} not loaded`, 'error');
+    return;
+  }
+  
+  appState.currentPage = pageNum;
+  const pageData = appState.pages.get(pageNum);
+  
+  document.getElementById('leftTitle').textContent = `Page ${pageNum} — Français (Original)`;
+  document.getElementById('leftContent').textContent = pageData.french || 'No content';
+  document.getElementById('leftMeta').textContent = `Source: ${pageData.pdfFile} | ${(pageData.french || '').length} characters`;
+  
+  document.getElementById('rightTitle').textContent = `Page ${pageNum} — English (Translation)`;
+  
+  if (!pageData.english) {
+    if (document.getElementById('autoTranslate').checked) {
+      document.getElementById('rightContent').innerHTML = 
+        '<div class="loading-spinner"></div> Translating French to English...';
+      document.getElementById('rightMeta').textContent = 'Translating...';
+      await translateAndCache(pageNum);
+    } else {
+      document.getElementById('rightContent').innerHTML = 
+        '<em style="color: var(--muted);">Translation disabled. Enable auto-translate.</em>';
+      document.getElementById('rightMeta').textContent = 'Translation not yet loaded';
+    }
+  } else {
+    document.getElementById('rightContent').textContent = pageData.english;
+    document.getElementById('rightMeta').textContent = `Translated | ${pageData.english.length} characters`;
+  }
+  
+  document.getElementById('pageNum').textContent = pageNum;
+  updateTOC();
+  updateButtonStates();
+  
+  if (window.MathJax && MathJax.typesetPromise) {
+    MathJax.typesetPromise().catch(err => console.log('MathJax error:', err));
+  }
+}
+
+async function translateAndCache(pageNum) {
+  if (appState.translated.has(pageNum)) {
+    const pageData = appState.pages.get(pageNum);
+    document.getElementById('rightContent').textContent = pageData.english;
+    return;
+  }
+  
+  try {
+    const pageData = appState.pages.get(pageNum);
+    if (!pageData.french) {
+      document.getElementById('rightContent').textContent = '[No French text to translate]';
+      return;
+    }
+    
+    const frenchText = pageData.french;
+    let translatedText;
+    
+    if (frenchText.length > 5000) {
+      const paragraphs = frenchText.split('\n\n');
+      const translatedParagraphs = [];
+      
+      for (const para of paragraphs) {
+        if (para.trim()) {
+          const translated = await translateText(para, 'fr', 'en');
+          translatedParagraphs.push(translated);
+        }
+      }
+      
+      translatedText = translatedParagraphs.join('\n\n');
+    } else {
+      translatedText = await translateText(frenchText, 'fr', 'en');
+    }
+    
+    pageData.english = translatedText;
+    appState.translated.add(pageNum);
+    
+    document.getElementById('rightContent').textContent = translatedText;
+    document.getElementById('rightMeta').textContent = `Translated | ${translatedText.length} characters`;
+    
+    updateTOC();
+    showStatus(`✓ Page ${pageNum} translated successfully`, 'success', 2000);
+  } catch (error) {
+    console.error('Translation error:', error);
+    showStatus(`Translation failed for page ${pageNum}`, 'error');
+    document.getElementById('rightContent').innerHTML = 
+      `<em style="color: red;">Translation failed: ${error.message}</em>`;
+  }
+}
+
+async function processPDFFiles() {
+  const files = document.getElementById('pdfUpload').files;
+  
+  if (files.length === 0) {
+    showStatus('Please select at least one PDF file', 'warning');
+    return;
+  }
+  
+  appState.loading = true;
+  document.getElementById('uploadBtn').disabled = true;
+  
+  const status = showStatus(`Processing ${files.length} PDF file(s)...`, 'info', -1);
+  
+  const progressBar = document.getElementById('uploadProgress');
+  let processed = 0;
+  let totalPages = 0;
+  
+  for (const file of files) {
+    try {
+      const extractedPages = await extractTextFromPDF(file);
+      
+      const startPage = CONFIG.minPage + (appState.pdfFiles.length * CONFIG.pagesPerPdf);
+      
+      extractedPages.forEach((page, idx) => {
+        const bookPageNum = startPage + idx;
+        if (bookPageNum <= CONFIG.maxPage && !appState.pages.has(bookPageNum)) {
+          appState.pages.set(bookPageNum, {
+            french: page.text,
+            english: null,
+            pdfFile: file.name,
+            pageIndex: page.pageNum
+          });
+          totalPages++;
+        }
+      });
+      
+      appState.pdfFiles.push({ name: file.name, pages: extractedPages.length });
+      processed++;
+      progressBar.style.width = ((processed / files.length) * 100) + '%';
+      
+    } catch (error) {
+      console.error('Error processing file:', file.name, error);
+      showStatus(`Error with ${file.name}: ${error.message}`, 'error');
+    }
+  }
+  
+  appState.loading = false;
+  document.getElementById('uploadBtn').disabled = false;
+  progressBar.style.width = '0%';
+  
+  if (totalPages > 0) {
+    status.innerHTML = `✓ Successfully loaded ${totalPages} pages from ${processed} PDF(s)`;
+    status.className = 'status-message success';
+    
+    document.getElementById('pdfCount').textContent = appState.pdfFiles.length;
+    updatePageNumbers();
+    updateTOC();
+    updateButtonStates();
+    
+    const pages = Array.from(appState.pages.keys()).sort((a, b) => a - b);
+    if (pages.length > 0) {
+      await loadPage(pages[0]);
+    }
+  } else {
+    status.innerHTML = '✗ No pages were extracted. Check PDF files.';
+    status.className = 'status-message error';
+  }
+}
+
+function exportData() {
+  if (appState.pages.size === 0) {
+    showStatus('No pages to export', 'warning');
+    return;
+  }
+  
+  const data = {
+    exportDate: new Date().toISOString(),
+    totalPages: appState.pages.size,
+    translatedPages: appState.translated.size,
+    pdfFiles: appState.pdfFiles.map(f => f.name),
+    pages: {}
+  };
+  
+  appState.pages.forEach((page, pageNum) => {
+    data.pages[pageNum] = {
+      french: page.french,
+      english: page.english || null,
+      pdfFile: page.pdfFile,
+      translated: appState.translated.has(pageNum)
+    };
+  });
+  
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `projective-book-${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  
+  showStatus('✓ Data exported successfully', 'success');
+}
+
+document.getElementById('sidebarToggle').addEventListener('click', () => {
+  document.getElementById('sidebar').classList.toggle('hidden');
+});
+
+document.getElementById('uploadBtn').addEventListener('click', processPDFFiles);
+
+document.getElementById('exportBtn').addEventListener('click', exportData);
+
+document.getElementById('prevBtn').addEventListener('click', () => {
+  const pages = Array.from(appState.pages.keys()).sort((a, b) => a - b);
+  const idx = pages.indexOf(appState.currentPage);
+  if (idx > 0) {
+    loadPage(pages[idx - 1]);
+  }
+});
+
+document.getElementById('nextBtn').addEventListener('click', () => {
+  const pages = Array.from(appState.pages.keys()).sort((a, b) => a - b);
+  const idx = pages.indexOf(appState.currentPage);
+  if (idx < pages.length - 1) {
+    loadPage(pages[idx + 1]);
+  }
+});
+
+document.getElementById('jumpBtn').addEventListener('click', () => {
+  const pageNum = parseInt(document.getElementById('pageJump').value);
+  if (appState.pages.has(pageNum)) {
+    loadPage(pageNum);
+  } else {
+    showStatus(`Page ${pageNum} not loaded`, 'error');
+  }
+});
+
+document.getElementById('pageJump').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') {
+    document.getElementById('jumpBtn').click();
+  }
+});
+
+document.getElementById('autoTranslate').addEventListener('change', (e) => {
+  if (e.target.checked && !appState.translated.has(appState.currentPage)) {
+    const pageData = appState.pages.get(appState.currentPage);
+    if (pageData && pageData.french) {
+      translateAndCache(appState.currentPage);
+    }
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft' && !e.ctrlKey && !e.metaKey) {
+    document.getElementById('prevBtn').click();
+  }
+  if (e.key === 'ArrowRight' && !e.ctrlKey && !e.metaKey) {
+    document.getElementById('nextBtn').click();
+  }
+});
+
+document.getElementById('settingsBtn').addEventListener('click', () => {
+  alert(`Projective Book Reader v3.0\n\n` +
+    `Pages Loaded: ${appState.pages.size}\n` +
+    `Pages Translated: ${appState.translated.size}\n` +
+    `Current Page: ${appState.currentPage}\n` +
+    `PDF Files: ${appState.pdfFiles.length}\n\n` +
+    `Keyboard Shortcuts:\n` +
+    `← / → : Previous / Next page\n` +
+    `Enter : Go to page number`);
+});
+
+updatePageNumbers();
+showStatus('📖 Ready! Upload PDF files to begin.', 'info');
+
+</script>
+
+</body>
+</html>
