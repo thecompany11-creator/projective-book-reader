@@ -1,55 +1,67 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Book Reader Application</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.7.570/pdf.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Book Reader</title>
+    <style>
+        body {
+            display: flex;
+        }
+        #original-text, #translated-text {
+            width: 50%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            overflow-y: scroll;
+            height: 90vh;
+        }
+    </style>
 </head>
 <body>
-    <h1>PDF Book Reader</h1>
-    <input type="file" id="upload" accept="application/pdf" />
-    <div id="pdf-viewer" style="width: 100%; height: 500px;"></div>
-    <div id="translated-text" style="margin-top: 20px;"></div>
-    
+    <div id="original-text"></div>
+    <div id="translated-text"></div>
+
+    <input type="file" id="file-input" accept=".pdf" />
+    <button id="translate-button">Translate</button>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
     <script>
-        const pdfViewer = document.getElementById('pdf-viewer');
-        const upload = document.getElementById('upload');
-        const translatedText = document.getElementById('translated-text');
-        
-        upload.addEventListener('change', (event) => {
-            const file = event.target.files[0];
-            if (file) {
-                const fileReader = new FileReader();
-                fileReader.onload = function() {
-                    const typedarray = new Uint8Array(this.result);
-                    pdfjsLib.getDocument(typedarray).promise.then(pdf => {
-                        pdf.getPage(1).then(page => {
-                            const scale = 1.5;
-                            const viewport = page.getViewport({ scale });
-                            const canvas = document.createElement('canvas');
-                            const context = canvas.getContext('2d');
-                            canvas.height = viewport.height;
-                            canvas.width = viewport.width;
-                            pdfViewer.appendChild(canvas);
-                            const renderContext = {
-                                canvasContext: context,
-                                viewport: viewport
-                            };
-                            page.render(renderContext);
-                        });
-                    });
-                };
-                fileReader.readAsArrayBuffer(file);
-                automaticTranslate();
+        document.getElementById('translate-button').onclick = async function() {
+            const fileInput = document.getElementById('file-input');
+            if (fileInput.files.length === 0) {
+                alert('Please select a PDF file');
+                return;
             }
-        });
-        
-        function automaticTranslate() {
-            const frenchText = 'Votre texte en français ici';  // Replace with your French text or implement a way to extract text from PDF.
-            fetch('https://api.mymemory.translated.net/get?q=' + encodeURIComponent(frenchText) + '&langpair=fr|en')
-                .then(response => response.json())
-                .then(data => {
-                    translatedText.innerHTML = '<h2>Translated Text:</h2>' + data.responseData.translatedText;
-                });
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            reader.onload = async function() {
+                const pdfData = new Uint8Array(reader.result);
+                
+                try {
+                    const pdf = await pdfjsLib.getDocument(pdfData).promise;
+                    let textContent = '';
+                    
+                    for (let i = 1; i <= pdf.numPages; i++) {
+                        const page = await pdf.getPage(i);
+                        const text = await page.getTextContent();
+                        textContent += text.items.map(item => item.str).join(' ') + '\n';
+                    }
+                    document.getElementById('original-text').innerText = textContent;
+                    const translatedText = await translateText(textContent);
+                    document.getElementById('translated-text').innerText = translatedText;
+                } catch (error) {
+                    console.error('Error processing PDF:', error);
+                    alert('Failed to extract text from the PDF');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        };
+
+        async function translateText(text) {
+            // Dummy translation for demonstration
+            // Integrate actual translation logic here (e.g., calling a translation API)
+            return "Translated: " + text;
         }
     </script>
 </body>
